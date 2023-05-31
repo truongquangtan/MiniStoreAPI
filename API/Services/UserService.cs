@@ -15,11 +15,13 @@ namespace API.Services
         private readonly IUserRepository userRepository;
         private readonly JwtTokenSupporter jwtTokenSupporter;
         private readonly FirebaseService firebaseService;
-        public UserService(IUserRepository userRepository, JwtTokenSupporter jwtTokenSupporter, FirebaseService firebaseService)
+        private readonly IConfiguration configuration;
+        public UserService(IUserRepository userRepository, JwtTokenSupporter jwtTokenSupporter, FirebaseService firebaseService, IConfiguration configuration)
         {
             this.userRepository = userRepository;
             this.jwtTokenSupporter = jwtTokenSupporter;
             this.firebaseService = firebaseService;
+            this.configuration = configuration;
         }
         public User? GetById(string id)
         {
@@ -61,11 +63,14 @@ namespace API.Services
         {
             TryValidateRegisterRequest(request);
 
-            string? imageUrl = null;
+            string imageUrl;
             if (request.Avatar != null)
             {
                 var imageName = request.Fullname + "-" + Guid.NewGuid().ToString();
                 imageUrl = await firebaseService.Upload(request.Avatar.OpenReadStream(), imageName);
+            } else
+            {
+                imageUrl = configuration["firebase:defaultAvatar"]!;
             }
 
             var user = new User()
@@ -108,6 +113,33 @@ namespace API.Services
             {
                 throw new Exception("Cannot create manager-role account");
             }
+        }
+        public async Task UpdateUser(string userId, UpdateUserRequest request)
+        {
+            var user = userRepository.GetById(userId) ?? throw new Exception("User not existed");
+            if(request.RoleId == RoleConstant.MANAGER)
+            {
+                throw new Exception("Cannot change to manager role");
+            }
+
+            if(request.Avatar != null)
+            {
+                var imageName = request.Fullname + "-" + Guid.NewGuid().ToString();
+                if (user.Avatar != configuration["firebase:defaultAvatar"])
+                {
+                    firebaseService.Delete(user.Avatar);
+                }
+                var imageUrl = await firebaseService.Upload(request.Avatar.OpenReadStream(), imageName);
+                user.Avatar = imageUrl;
+            }
+
+            user.Address = request.Address ?? user.Address;
+            user.Dob = request.Dob ?? user.Dob;
+            user.Phone = request.Phone ?? user.Phone;
+            user.Fullname = request.Fullname ?? user.Fullname;
+            user.RoleId = request.RoleId;
+
+            userRepository.Update(user);
         }
     }
 }

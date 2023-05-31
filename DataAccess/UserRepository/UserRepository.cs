@@ -1,9 +1,5 @@
 ﻿using BusinessObject.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace DataAccess.UserRepository
 {
@@ -18,7 +14,7 @@ namespace DataAccess.UserRepository
 
         public IEnumerable<User> GetAll()
         {
-            return context.Users.ToList();
+            return context.Users.Include(d => d.Role).ToList();
         }
 
         public User? GetById(string id)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace BusinessObject.Models;
 
@@ -21,7 +22,7 @@ public partial class User
 
     public DateTime? Dob { get; set; }
 
-    public DateTime CreatedAt { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     public decimal? AmountSelled { get; set; }
 
@@ -37,9 +38,11 @@ public partial class User
 
     public int? RoleId { get; set; }
 
+    [JsonIgnore]
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
     public virtual Role Role { get; set; }
 
+    [JsonIgnore]
     public virtual ICollection<TimeSheetRegistration> TimeSheetRegistrations { get; set; } = new List<TimeSheetRegistration>();
 }
