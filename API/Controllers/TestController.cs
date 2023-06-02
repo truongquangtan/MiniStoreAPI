@@ -16,7 +16,7 @@ namespace API.Controllers
         [HttpPost("firebase")]
         public async Task<IActionResult> TestFirebase(IFormFile anh)
         {
-            await firebaseService.Upload(anh.OpenReadStream(), "anh");
+            await firebaseService.Upload(anh.OpenReadStream(), "anh-test");
             return Ok();
         }
     }
