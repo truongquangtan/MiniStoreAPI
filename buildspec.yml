@@ -1,0 +1,24 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      dotnet: 6.0
+    commands:
+      - echo Installing NuGet...
+      - curl -o nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe
+      - echo dotnet nuget locals all --clear
+      - dotnet tool install --global Amazon.Lambda.Tools
+      - echo dotnet restore
+      - dotnet restore
+  build:
+    commands:
+      - echo dotnet build
+      - dotnet build --configuration Release
+  post_build:
+    commands:
+      - echo Running tests...
+      - dotnet test --configuration Release
+artifacts:
+  files:
+    - "**/*"
