@@ -1,21 +1,12 @@
 ﻿using BusinessObject.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DataAccess.CategoryRepository
 {
     public class CategoryRepository : ICategoryRepository, IDisposable
     {
-        private readonly MiniStoreContext context;
-        public CategoryRepository(MiniStoreContext context)
-        {
-            this.context = context;
-        }
+        private readonly MiniStoreContext context = new();
         public void Dispose() => context?.Dispose();
-        public IEnumerable<Category> GetAll() => context.Categories.ToList();
+        public IEnumerable<Category> GetAll() => context.Categories.Where(c => c.IsDeleted == false).ToList();
         public Category? Save(Category category)
         {
             var categoryAdded = context.Categories.Add(category);
@@ -27,7 +18,8 @@ namespace DataAccess.CategoryRepository
             var category = context.Categories.FirstOrDefault(c => c.Id == id);
             if(category != null)
             {
-                context.Categories.Remove(category);
+                category.IsDeleted = true;
+                context.SaveChanges();
             }
         }
     }

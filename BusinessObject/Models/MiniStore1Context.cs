@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
 namespace BusinessObject.Models;
@@ -144,17 +142,12 @@ public partial class MiniStoreContext : DbContext
                 .HasColumnName("description");
             entity.Property(e => e.IsActive).HasColumnName("is_active");
             entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
-            entity.Property(e => e.IsSelling).HasColumnName("is_selling");
             entity.Property(e => e.LastUpdatedAt)
                 .HasColumnType("datetime")
                 .HasColumnName("last_updated_at");
             entity.Property(e => e.Name)
                 .IsRequired()
-                .HasMaxLength(200)
-                .HasColumnName("name");
-            entity.Property(e => e.OriginalPrice)
-                .HasColumnType("money")
-                .HasColumnName("original_price");
+                .HasMaxLength(200);
             entity.Property(e => e.Price)
                 .HasColumnType("money")
                 .HasColumnName("price");

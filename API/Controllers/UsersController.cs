@@ -4,7 +4,6 @@ using API.DTOs.Response;
 using API.Services;
 using BusinessObject.Models;
 using DataAccess.UserRepository;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers

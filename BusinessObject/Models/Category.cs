@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Text.Json.Serialization;
 
 namespace BusinessObject.Models;
 
@@ -9,7 +8,9 @@ public partial class Category
 
     public string Name { get; set; }
 
-    public bool IsDeleted { get; set; }
+    [JsonIgnore]
+    public bool IsDeleted { get; set; } = false;
 
+    [JsonIgnore]
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 }

@@ -1,6 +1,11 @@
 using API.Services;
+using API.Supporters;
 using API.Supporters.JwtAuthSupport;
 using BLL.Services;
+using DataAccess.CategoryRepository;
+using DataAccess.OrderDetailRepository;
+using DataAccess.OrderRepository;
+using DataAccess.ProductRepository;
 using DataAccess.RoleRepository;
 using DataAccess.UserRepository;
 
@@ -20,6 +25,10 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderDetailRepository, OrderDetailRepository>();
 
 builder.Services.AddScoped<FirebaseService, FirebaseService>();
 builder.Services.AddScoped<JwtTokenSupporter, JwtTokenSupporter>();
@@ -37,6 +46,8 @@ if (app.Environment.IsDevelopment())
 app.UseCors("allow");
 
 app.UseAuthorization();
+
+app.UseMiddleware<JWTAuthenticationMiddleware>();
 
 app.MapControllers();
 
