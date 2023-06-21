@@ -9,10 +9,10 @@ public partial class Role
     public int Id { get; set; }
 
     public string Name { get; set; }
-    [JsonIgnore]
 
+    [JsonIgnore]
     public virtual ICollection<TimeSheet> TimeSheets { get; set; } = new List<TimeSheet>();
-    [JsonIgnore]
 
+    [JsonIgnore]
     public virtual ICollection<User> Users { get; set; } = new List<User>();
 }

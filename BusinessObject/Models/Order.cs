@@ -14,13 +14,9 @@ public partial class Order
 
     public DateTime? CreatedAt { get; set; } = DateTime.Now;
 
-    public string ShipAddress { get; set; }
-
     public string Status { get; set; }
 
     public string Payment { get; set; }
-
-    public DateTime? ShippedAt { get; set; }
 
     public virtual ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
 
