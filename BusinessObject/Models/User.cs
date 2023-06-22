@@ -1,4 +1,6 @@
-﻿using System.Text.Json.Serialization;
+﻿using System;
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace BusinessObject.Models;
 
@@ -32,14 +34,19 @@ public partial class User
 
     public string? Token { get; set; }
 
-    public bool IsLogout { get; set; } = false;
+    public bool? IsLogout { get; set; } = false;
 
     public int? RoleId { get; set; }
+
+    public decimal? Salary { get; set; }
 
     [JsonIgnore]
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
     public virtual Role Role { get; set; }
+
+    [JsonIgnore]
+    public virtual ICollection<TimeSheetRegistrationReference> TimeSheetRegistrationReferences { get; set; } = new List<TimeSheetRegistrationReference>();
 
     [JsonIgnore]
     public virtual ICollection<TimeSheetRegistration> TimeSheetRegistrations { get; set; } = new List<TimeSheetRegistration>();

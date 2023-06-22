@@ -50,7 +50,7 @@ namespace API.Supporters.JwtAuthSupport
                  var userId = jwtToken.Claims.First(claim => claim.Type == "id").Value;
 
                 var user = userRepository.GetById(userId);
-                if(user == null || user.IsLogout)
+                if(user == null || user.IsLogout.Value)
                 {
                     return null;
                 }

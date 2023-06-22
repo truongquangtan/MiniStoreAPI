@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System;
+using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
 namespace BusinessObject.Models;
@@ -31,6 +33,8 @@ public partial class MiniStoreContext : DbContext
     public virtual DbSet<TimeSheetCheck> TimeSheetChecks { get; set; }
 
     public virtual DbSet<TimeSheetRegistration> TimeSheetRegistrations { get; set; }
+
+    public virtual DbSet<TimeSheetRegistrationReference> TimeSheetRegistrationReferences { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
 
@@ -76,12 +80,6 @@ public partial class MiniStoreContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false)
                 .HasColumnName("payment");
-            entity.Property(e => e.ShipAddress)
-                .HasMaxLength(200)
-                .HasColumnName("ship_address");
-            entity.Property(e => e.ShippedAt)
-                .HasColumnType("datetime")
-                .HasColumnName("shipped_at");
             entity.Property(e => e.Status)
                 .IsRequired()
                 .HasMaxLength(50)
@@ -147,7 +145,8 @@ public partial class MiniStoreContext : DbContext
                 .HasColumnName("last_updated_at");
             entity.Property(e => e.Name)
                 .IsRequired()
-                .HasMaxLength(200);
+                .HasMaxLength(200)
+                .HasColumnName("name");
             entity.Property(e => e.Price)
                 .HasColumnType("money")
                 .HasColumnName("price");
@@ -200,6 +199,7 @@ public partial class MiniStoreContext : DbContext
                 .HasColumnName("id");
             entity.Property(e => e.IsActive).HasColumnName("is_active");
             entity.Property(e => e.RoleId).HasColumnName("role_id");
+            entity.Property(e => e.Name).HasColumnName("name");
             entity.Property(e => e.TimeRange)
                 .IsRequired()
                 .HasMaxLength(50)
@@ -254,6 +254,9 @@ public partial class MiniStoreContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasColumnType("datetime")
                 .HasColumnName("created_at");
+            entity.Property(e => e.Date)
+                .HasColumnType("date")
+                .HasColumnName("date");
             entity.Property(e => e.TimeSheetId)
                 .IsRequired()
                 .HasMaxLength(50)
@@ -276,11 +279,49 @@ public partial class MiniStoreContext : DbContext
                 .HasConstraintName("FK_TimeSheetRegistration_User");
         });
 
+        modelBuilder.Entity<TimeSheetRegistrationReference>(entity =>
+        {
+            entity.ToTable("TimeSheetRegistrationReference");
+
+            entity.Property(e => e.Id)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasColumnType("datetime")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Date)
+                .HasColumnType("date")
+                .HasColumnName("date");
+            entity.Property(e => e.TimeSheetId)
+                .IsRequired()
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("time_sheet_id");
+            entity.Property(e => e.UserId)
+                .IsRequired()
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("user_id");
+
+            entity.HasOne(d => d.TimeSheet).WithMany(p => p.TimeSheetRegistrationReferences)
+                .HasForeignKey(d => d.TimeSheetId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_TimeSheetRegistrationReference_TimeSheet");
+
+            entity.HasOne(d => d.User).WithMany(p => p.TimeSheetRegistrationReferences)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_TimeSheetRegistrationReference_User");
+        });
+
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__User__3213E83F39E94B7B");
 
             entity.ToTable("User");
+
+            entity.HasIndex(e => e.Email, "UQ__User__AB6E6164E1A2D952").IsUnique();
 
             entity.Property(e => e.Id)
                 .HasMaxLength(50)
@@ -329,6 +370,9 @@ public partial class MiniStoreContext : DbContext
                 .IsUnicode(false)
                 .HasColumnName("phone");
             entity.Property(e => e.RoleId).HasColumnName("role_id");
+            entity.Property(e => e.Salary)
+                .HasColumnType("money")
+                .HasColumnName("salary");
             entity.Property(e => e.Token)
                 .IsUnicode(false)
                 .HasColumnName("token");
