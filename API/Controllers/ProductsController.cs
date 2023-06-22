@@ -110,10 +110,11 @@ namespace API.Controllers
                     productRepository.AddImageToProduct(id, imageUrl);
                 }
             }
-            finally
+            catch
             {
                 return Ok();
             }
+            return Ok();
         }
 
         // DELETE api/products/5
