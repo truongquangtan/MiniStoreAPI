@@ -94,21 +94,26 @@ namespace API.Controllers
             productRepository.Update(productEntity);
 
             // Update image field
-            if (product.Image != null)
+            try 
             {
-                //Delete previous images
-                foreach (var image in productEntity.ProductImages)
+                if (product.Image != null)
                 {
-                    firebaseService.Delete(image.Image[7..]);
+                    //Delete previous images
+                    foreach (var image in productEntity.ProductImages)
+                    {
+                        firebaseService.Delete(image.Image[7..]);
+                    }
+                    productRepository.DeleteAllImagesOfProduct(id);
+                    //Add new image
+                    var imageName = product.Name + " " + Guid.NewGuid().ToString();
+                    var imageUrl = await firebaseService.Upload(product.Image.OpenReadStream(), imageName);
+                    productRepository.AddImageToProduct(id, imageUrl);
                 }
-                productRepository.DeleteAllImagesOfProduct(id);
-                //Add new image
-                var imageName = product.Name + " " + Guid.NewGuid().ToString();
-                var imageUrl = await firebaseService.Upload(product.Image.OpenReadStream(), imageName);
-                productRepository.AddImageToProduct(id, imageUrl);
             }
-
-            return Ok();
+            finally
+            {
+                return Ok();
+            }
         }
 
         // DELETE api/products/5
