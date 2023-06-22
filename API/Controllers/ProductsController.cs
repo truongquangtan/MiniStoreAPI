@@ -1,4 +1,6 @@
-﻿using BusinessObject.Models;
+﻿using API.DTOs.Request;
+using BLL.Services;
+using BusinessObject.Models;
 using DataAccess.ProductRepository;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,10 +13,14 @@ namespace API.Controllers
     public class ProductsController : ControllerBase
     {
         private readonly IProductRepository productRepository;
+        private readonly FirebaseService firebaseService;
+        private readonly IConfiguration configuration;
 
-        public ProductsController(IProductRepository productRepository)
+        public ProductsController(IProductRepository productRepository, FirebaseService firebaseService, IConfiguration configuration)
         {
             this.productRepository = productRepository;
+            this.firebaseService = firebaseService;
+            this.configuration = configuration;
         }
 
         // GET: api/products
@@ -39,21 +45,69 @@ namespace API.Controllers
 
         // POST api/products
         [HttpPost]
-        public IActionResult Post([FromBody] Product product)
+        public async Task<IActionResult> Post([FromForm] ProductDTO product)
         {
-            productRepository.Save(product);
+            // upload image
+            string imageUrl;
+            if(product.Image == null)
+            {
+                imageUrl = configuration["defaultItemImage"]!;
+            }
+            else
+            {
+                var imageName = product.Name + " " + Guid.NewGuid().ToString();
+                imageUrl = await firebaseService.Upload(product.Image.OpenReadStream(), imageName);
+            }
+
+            var entity = new Product()
+            {
+                CategoryId = product.CategoryId,
+                Description = product.Description,
+                Name = product.Name,
+                Price = product.Price,
+                Quantity = product.Quantity,
+                Source = product.Source,
+            };
+            var productSaved = productRepository.Save(entity);
+            productRepository.AddImageToProduct(productSaved!.Id, imageUrl);
             return Ok();
         }
 
         // PUT api/products/5
         [HttpPut("{id}")]
-        public IActionResult Put(int id, [FromBody] Product product)
+        public async Task<IActionResult> Put(int id, [FromForm] ProductDTO product)
         {
-            if(product.Id != id)
+            var productEntity = productRepository.GetById(id);
+            if(productEntity == null)
             {
-                return BadRequest("Product is not match");
+                return BadRequest("Product not found");
             }
-            productRepository.Update(product);
+
+            // Update other field
+            productEntity.Source = product.Source;
+            productEntity.Price = product.Price;
+            productEntity.Quantity = product.Quantity;
+            productEntity.CategoryId = product.CategoryId;
+            productEntity.Description = product.Description;
+            productEntity.Name = product.Name;
+
+            productRepository.Update(productEntity);
+
+            // Update image field
+            if (product.Image != null)
+            {
+                //Delete previous images
+                foreach (var image in productEntity.ProductImages)
+                {
+                    firebaseService.Delete(image.Image[7..]);
+                }
+                productRepository.DeleteAllImagesOfProduct(id);
+                //Add new image
+                var imageName = product.Name + " " + Guid.NewGuid().ToString();
+                var imageUrl = await firebaseService.Upload(product.Image.OpenReadStream(), imageName);
+                productRepository.AddImageToProduct(id, imageUrl);
+            }
+
             return Ok();
         }
 

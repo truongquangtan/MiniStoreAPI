@@ -41,9 +41,25 @@ namespace DataAccess.ProductRepository
 
         public void Update(Product entity)
         {
-            var images = context.ProductImages.Where(p => p.ProductId == entity.Id).ToList();
-            context.ProductImages.RemoveRange(images);
             context.Products.Update(entity);
+            context.SaveChanges();
+        }
+
+        public void AddImageToProduct(int productId, string imageUrl)
+        {
+            var imageEntity = new ProductImage()
+            {
+                Image = imageUrl,
+                ProductId = productId
+            };
+            context.ProductImages.Add(imageEntity);
+            context.SaveChanges();
+        }
+
+        public void DeleteAllImagesOfProduct(int productId)
+        {
+            var images = context.ProductImages.Where(d => d.ProductId == productId).ToList();
+            context.ProductImages.RemoveRange(images);
             context.SaveChanges();
         }
     }
