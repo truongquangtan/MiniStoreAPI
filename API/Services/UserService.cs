@@ -27,21 +27,21 @@ namespace API.Services
             return userRepository.GetById(id);
         }
 
-        public string? Login(string email, string password)
+        public (string? token, User? user) Login(string email, string password)
         {
             var user = userRepository.GetByEmailAndPassword(email, password);
             if (user != null)
             {
                 if (IsUserAlreadyLogin(user))
                 {
-                    return user.Token;
+                    return (user.Token, user);
                 }
 
                 var token = jwtTokenSupporter.CreateToken(user);
                 UpdateTokenForUser(user, token);
-                return token;
+                return (token, user);
             }
-            return null;
+            return (null, null);
         }
         private static bool IsUserAlreadyLogin(User user)
         {

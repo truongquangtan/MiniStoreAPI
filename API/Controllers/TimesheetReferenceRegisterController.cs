@@ -1,4 +1,5 @@
 ﻿using API.DTOs.Request;
+using API.Services;
 using BusinessObject.Models;
 using DataAccess.TimeSheetRegistrationRefRepository;
 using Microsoft.AspNetCore.Mvc;
@@ -12,20 +13,25 @@ namespace API.Controllers
     public class TimesheetRegisterReferenceController : ControllerBase
     {
         private readonly ITimesheetRegistrationRefRepository timesheetRegistrationRefRepository;
+        private readonly WorksheetService worksheetService;
 
-        public TimesheetRegisterReferenceController(ITimesheetRegistrationRefRepository timesheetRegistrationRefRepository)
+        public TimesheetRegisterReferenceController(
+            ITimesheetRegistrationRefRepository timesheetRegistrationRefRepository,
+            WorksheetService worksheetService
+         )
         {
             this.timesheetRegistrationRefRepository = timesheetRegistrationRefRepository;
+            this.worksheetService = worksheetService;
         }
 
-        // GET api/timesheet/register?startDate=2023-01-01&endDate=2023-02-01
+        // GET api/timesheet/register-reference?startDate=2023-01-01&endDate=2023-02-01
         [HttpGet]
-        public IActionResult Get([FromRoute] DateTime? startDate, [FromRoute] DateTime? endDate)
+        public IActionResult Get([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
         {
-            var start = startDate == null ? DateTime.Now : startDate.Value;
+            var start = startDate == null ? DateTime.Now.Date : startDate.Value;
             var end = endDate == null ? DateTime.Now.AddYears(10) : endDate.Value;
             var user = HttpContext.Items["User"] as User;
-            return Ok(timesheetRegistrationRefRepository.GetByUserIdAndTimeRange(user!.Id, start, end));
+            return Ok(worksheetService.GetRequestedTimesheets(user!.Id, start, end));
         }
 
         // POST api/timesheet/register
@@ -53,7 +59,7 @@ namespace API.Controllers
             return NoContent();
         }
 
-        [HttpDelete]
+        [HttpPost("delete-range")]
         public IActionResult DeleteRange([FromBody] ArrayRequest requests)
         {
             foreach(var request in requests.Items)

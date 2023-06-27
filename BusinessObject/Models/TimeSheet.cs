@@ -14,6 +14,7 @@ public partial class TimeSheet
     public string Name { get; set; }
 
     public bool IsActive { get; set; } = true;
+    public decimal CoefficientAmount { get; set; } = 1.0m;
 
     public virtual Role? Role { get; set; }
 

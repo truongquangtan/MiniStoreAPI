@@ -22,13 +22,22 @@ namespace API.Controllers
         public IActionResult Login(LoginRequest request)
         {
             ResponseMessage response;
-            var token = userService.Login(request.Email, request.Password);
+            var (token, user) = userService.Login(request.Email, request.Password);
             if (token == null)
             {
                 response = new ResponseMessage() { Message = "Incorrect email or password" };
                 return new JsonResult(response) { StatusCode = StatusCodes.Status400BadRequest };
             }
-            response = new ResponseMessage() { Message = "Login successfully", Data = token };
+            response = new ResponseMessage() {
+                Message = "Login successfully",
+                Data = new
+                {
+                    Token=token,
+                    Role=user!.RoleId,
+                    user!.Avatar,
+                    user.Fullname,
+                }
+            };
             return new JsonResult(response) { StatusCode = StatusCodes.Status200OK };
         }
         [HttpPut("logout")]

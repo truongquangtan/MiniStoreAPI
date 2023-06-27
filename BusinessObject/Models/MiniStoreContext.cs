@@ -205,6 +205,9 @@ public partial class MiniStoreContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false)
                 .HasColumnName("time_range");
+            entity.Property(e => e.CoefficientAmount)
+                .HasColumnType("decimal(2, 1)")
+                .HasColumnName("coefficient_amount");
 
             entity.HasOne(d => d.Role).WithMany(p => p.TimeSheets)
                 .HasForeignKey(d => d.RoleId)
@@ -255,8 +258,11 @@ public partial class MiniStoreContext : DbContext
                 .HasColumnType("datetime")
                 .HasColumnName("created_at");
             entity.Property(e => e.Date)
-                .HasColumnType("date")
+                .HasColumnType("datetime")
                 .HasColumnName("date");
+            entity.Property(e => e.Salary)
+                .HasColumnType("money")
+                .HasColumnName("salary");
             entity.Property(e => e.TimeSheetId)
                 .IsRequired()
                 .HasMaxLength(50)
@@ -291,7 +297,7 @@ public partial class MiniStoreContext : DbContext
                 .HasColumnType("datetime")
                 .HasColumnName("created_at");
             entity.Property(e => e.Date)
-                .HasColumnType("date")
+                .HasColumnType("datetime")
                 .HasColumnName("date");
             entity.Property(e => e.TimeSheetId)
                 .IsRequired()

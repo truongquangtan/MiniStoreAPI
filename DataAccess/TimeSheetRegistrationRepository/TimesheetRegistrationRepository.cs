@@ -53,7 +53,7 @@ namespace DataAccess.TimeSheetRegistrationRepository
 
         public IEnumerable<TimeSheetRegistration> GetByUserId(string userId)
         {
-            return context.TimeSheetRegistrations.Where(t => t.UserId == userId).Include(t => t.TimeSheet).ToList();
+            return context.TimeSheetRegistrations.Where(t => t.UserId == userId).Include(t => t.TimeSheet).OrderBy(t => t.Date).ToList();
         }
 
         public IEnumerable<TimeSheetRegistration> GetByTimeSheetId(string timeSheetId)
@@ -63,6 +63,7 @@ namespace DataAccess.TimeSheetRegistrationRepository
             => context.TimeSheetRegistrations
             .Where(t => t.UserId == userId && t.Date >= startDate && t.Date <= endDate)
             .Include(t => t.TimeSheet)
+            .OrderBy(t => t.Date)
             .ToList();
 
         public IEnumerable<TimeSheetRegistration> GetAllByTimeRange(DateTime startDate, DateTime endDate)

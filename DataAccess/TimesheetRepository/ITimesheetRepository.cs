@@ -9,6 +9,6 @@ namespace DataAccess.TimesheetRepository
 {
     public interface ITimesheetRepository : ICrudBaseRepository<TimeSheet, string>
     {
-
+        IEnumerable<TimeSheet> GetByRole(int roleId);
     }
 }

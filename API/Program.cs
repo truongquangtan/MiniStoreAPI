@@ -39,6 +39,9 @@ builder.Services.AddScoped<ITimesheetRegistrationRepository, TimesheetRegistrati
 builder.Services.AddScoped<FirebaseService, FirebaseService>();
 builder.Services.AddScoped<JwtTokenSupporter, JwtTokenSupporter>();
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<WorksheetService>();
+
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
 

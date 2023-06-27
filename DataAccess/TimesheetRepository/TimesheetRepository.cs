@@ -49,5 +49,10 @@ namespace DataAccess.TimesheetRepository
             context.TimeSheets.Update(entity);
             context.SaveChanges();
         }
+
+        public IEnumerable<TimeSheet> GetByRole(int roleId)
+        {
+            return context.TimeSheets.Where(t => t.RoleId == roleId && t.IsActive == true).Include(t => t.Role).ToList().OrderBy(t => t.TimeRange).ToList();
+        }
     }
 }

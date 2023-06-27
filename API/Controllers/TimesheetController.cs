@@ -1,4 +1,8 @@
-﻿using BusinessObject.Models;
+﻿using API.Constants;
+using API.DTOs.Response;
+using API.Services;
+using API.Supporters.JwtAuthSupport;
+using BusinessObject.Models;
 using DataAccess.TimesheetRepository;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,10 +15,12 @@ namespace API.Controllers
     public class TimesheetController : ControllerBase
     {
         private readonly ITimesheetRepository timesheetRepository;
+        private readonly WorksheetService worksheetService;
 
-        public TimesheetController(ITimesheetRepository timesheetRepository)
+        public TimesheetController(ITimesheetRepository timesheetRepository, WorksheetService worksheetService)
         {
             this.timesheetRepository = timesheetRepository;
+            this.worksheetService = worksheetService;
         }
 
         // GET: api/timesheet/all
@@ -35,6 +41,43 @@ namespace API.Controllers
             }
 
             return Ok(entity);
+        }
+
+        [HttpGet("timesheet-with-salary")]
+        [Authorize]
+        public async Task<ActionResult> GetWithSalary([FromQuery] DateTime startDate, [FromQuery] int addIn)
+        {
+            if(startDate.CompareTo(DateTime.Now.Date) < 0)
+            {
+                return BadRequest("Date must be from now");
+            }
+            if (addIn <= 0)
+            {
+                return BadRequest("Add in date must be positive");
+            }
+            var role = HttpContext.Items["Role"] as int?;
+            var user = HttpContext.Items["User"] as BusinessObject.Models.User;
+
+            var response = new TimesheetWithSalaryResponse
+            {
+                Role = role == RoleConstant.SALES ? "Sales" : "Guard",
+                TimeSheets = timesheetRepository.GetByRole(role!.Value)
+            };
+
+            var timesheets = new List<TimesheetDTO>();
+            for (int i = 0; i < addIn; i++)
+            {
+                var date = startDate.Date.AddDays(i);
+                timesheets.Add(new TimesheetDTO()
+                {
+                    Date = date,
+                    TimesheetData = worksheetService.GetTimesheetWithSalaryByDate(date, role!.Value, user!.Id)
+                });
+            }
+
+            response.TimesheetsWithSalary = timesheets;
+
+            return Ok(response);
         }
 
         // POST api/timesheet

@@ -34,7 +34,7 @@ public partial class User
 
     public string? Token { get; set; }
 
-    public bool? IsLogout { get; set; } = false;
+    public bool? IsLogout { get; set; } = true;
 
     public int? RoleId { get; set; }
 

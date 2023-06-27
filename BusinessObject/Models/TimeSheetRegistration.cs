@@ -16,6 +16,8 @@ public partial class TimeSheetRegistration
 
     public DateTime? Date { get; set; }
 
+    public decimal Salary { get; set; }
+
     public virtual TimeSheet TimeSheet { get; set; }
 
     [JsonIgnore]
