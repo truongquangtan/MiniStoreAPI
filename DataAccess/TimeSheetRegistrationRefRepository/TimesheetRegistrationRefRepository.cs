@@ -72,5 +72,12 @@ namespace DataAccess.TimeSheetRegistrationRefRepository
             .Where(t => t.Date >= startDate && t.Date <= endDate)
             .Include(t => t.TimeSheet)
             .ToList();
+
+        public IEnumerable<TimeSheetRegistrationReference> GetByRoleIdAndTimeRange(int roleId, DateTime startDate, DateTime endDate)
+            => context.TimeSheetRegistrationReferences
+            .Include(t => t.TimeSheet)
+            .Include(t => t.User)
+            .Where(t => t.Date >= startDate && t.Date <= endDate && t.User.RoleId == roleId)
+            .ToList();
     }
 }

@@ -1,9 +1,4 @@
 ﻿using BusinessObject.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DataAccess.TimeSheetRegistrationRepository
 {
@@ -14,5 +9,6 @@ namespace DataAccess.TimeSheetRegistrationRepository
         IEnumerable<TimeSheetRegistration> GetByTimeSheetId(string timeSheetId);
         IEnumerable<TimeSheetRegistration> GetByUserIdAndTimeRange(string userId, DateTime startDate, DateTime endDate);
         IEnumerable<TimeSheetRegistration> GetAllByTimeRange(DateTime startDate, DateTime endDate);
+        IEnumerable<TimeSheetRegistration> GetByRoleIdAndTimeRange(int roleId, DateTime startDate, DateTime endDate);
     }
 }

@@ -80,6 +80,41 @@ namespace API.Controllers
             return Ok(response);
         }
 
+        [HttpGet("timesheet-for-schedule")]
+        [ManagerOnly]
+        public async Task<ActionResult> GetForSchedule([FromQuery] DateTime startDate, [FromQuery] int addIn, [FromQuery] int roleId)
+        {
+            if (startDate.CompareTo(DateTime.Now.Date) < 0)
+            {
+                return BadRequest("Date must be from now");
+            }
+            if (addIn <= 0)
+            {
+                return BadRequest("Add in date must be positive");
+            }
+
+            var response = new TimesheetWithSalaryForAdminResponse
+            {
+                Role = roleId == RoleConstant.SALES ? "Sales" : "Guard",
+                TimeSheets = timesheetRepository.GetByRole(roleId)
+            };
+
+            var timesheets = new List<TimesheetDTOForAdmin>();
+            for (int i = 0; i < addIn; i++)
+            {
+                var date = startDate.Date.AddDays(i);
+                timesheets.Add(new TimesheetDTOForAdmin()
+                {
+                    Date = date,
+                    TimesheetData = worksheetService.GetTimesheetForSchedule(date, roleId)
+                });
+            }
+
+            response.TimesheetsWithSalary = timesheets;
+
+            return Ok(response);
+        }
+
         // POST api/timesheet
         [HttpPost]
         public ActionResult Post([FromBody] TimeSheet value)

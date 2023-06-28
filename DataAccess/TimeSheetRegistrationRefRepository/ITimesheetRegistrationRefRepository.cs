@@ -13,6 +13,7 @@ namespace DataAccess.TimeSheetRegistrationRefRepository
         IEnumerable<TimeSheetRegistrationReference> GetByUserId(string userId);
         IEnumerable<TimeSheetRegistrationReference> GetByTimeSheetId(string timeSheetId);
         IEnumerable<TimeSheetRegistrationReference> GetByUserIdAndTimeRange(string userId, DateTime startDate, DateTime endDate);
+        IEnumerable<TimeSheetRegistrationReference> GetByRoleIdAndTimeRange(int roleId, DateTime startDate, DateTime endDate);
         IEnumerable<TimeSheetRegistrationReference> GetAllByTimeRange(DateTime startDate, DateTime endDate);
     }
 }

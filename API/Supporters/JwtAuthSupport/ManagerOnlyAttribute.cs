@@ -12,7 +12,7 @@ namespace API.Supporters.JwtAuthSupport
             var user = (User?) context.HttpContext.Items["User"];
             if(user == null || user.RoleId != RoleConstant.MANAGER)
             {
-                context.Result = new JsonResult(new { Message = "Only customer can access!" }) { StatusCode = StatusCodes.Status403Forbidden };
+                context.Result = new JsonResult(new { Message = "Only manager can access!" }) { StatusCode = StatusCodes.Status403Forbidden };
             }
         }
     }

@@ -28,6 +28,53 @@ namespace API.Services
             this.timesheetRegistrationRepository = timesheetRegistrationRepository;
         }
 
+        public IEnumerable<TimesheetWithSalaryForAdmin> GetTimesheetForSchedule(DateTime date, int roleId)
+        {
+            var holidays = TimesheetData.GetInstance().Holidays;
+            var unitSalary = TimesheetData.GetInstance().UnitSalary;
+
+            var timesheetEntities = timesheetRepository.GetByRole(roleId);
+            var timesheetRegisteredRefs = timesheetRegistrationRefRepository.GetByRoleIdAndTimeRange(roleId, date.Date, date.Date);
+            var timesheetRegistered = timesheetRegistrationRepository.GetByRoleIdAndTimeRange(roleId, date.Date, date.Date);
+
+            var result = timesheetEntities.Select(t =>
+            {
+                var (salary, note) = CalculateSalaryOfTimesheetInDate(t, date);
+                var pickedEntity = timesheetRegisteredRefs.Where(d => d.TimeSheetId == t.Id).ToList();
+                var scheduledEntity = timesheetRegistered.Where(d => d.TimeSheetId == t.Id).ToList();
+                return new TimesheetWithSalaryForAdmin
+                {
+                    TimesheetId = t.Id,
+                    Name = t.Name,
+                    StartTime = t.TimeRange.Split("-")[0],
+                    EndTime = t.TimeRange.Split("-")[1],
+                    Salary = salary.ToString(),
+                    Note = note,
+                    IsPicked = pickedEntity != null && pickedEntity.Count > 0,
+                    IsScheduled = scheduledEntity != null && scheduledEntity.Count > 0,
+                    RegisterData = pickedEntity == null || pickedEntity.Count == 0 ? new List<RegisterInfo>() 
+                                                                                   : pickedEntity.Select(entity => new RegisterInfo()
+                                                                                   {
+                                                                                       Avatar = entity.User.Avatar,
+                                                                                       Id = entity.Id,
+                                                                                       RequestAt = entity.CreatedAt!.Value,
+                                                                                       UserId = entity.UserId,
+                                                                                       UserName = entity.User.Fullname
+                                                                                   }),
+                    ScheduleData = scheduledEntity == null || scheduledEntity.Count == 0 ? new List<RegisterInfo>()
+                                                                                   : scheduledEntity.Select(entity => new RegisterInfo()
+                                                                                   {
+                                                                                       Avatar = entity.User.Avatar,
+                                                                                       Id = entity.Id,
+                                                                                       RequestAt = entity.CreatedAt,
+                                                                                       UserId = entity.UserId,
+                                                                                       UserName = entity.User.Fullname
+                                                                                   })
+                };
+            }).ToList();
+            return result;
+        }
+
         public IEnumerable<TimesheetWithSalary> GetTimesheetWithSalaryByDate(DateTime date, int roleId, string userId)
         {
             var holidays = TimesheetData.GetInstance().Holidays;
@@ -55,7 +102,7 @@ namespace API.Services
                     IsScheduled = timesheetRegistered.Where(d => d.TimeSheetId == t.Id).Any(),
                     RegisterId = registerEntity != null ? registerEntity.Id : "",
                 };
-            });
+            }).ToList();
             return result;
         }
 
