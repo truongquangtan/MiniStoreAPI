@@ -16,6 +16,7 @@ namespace DataAccess.UserRepository
         {
             return context.Users.Include(d => d.Role).ToList();
         }
+        public IEnumerable<User> GetAllByRoleId(int roleId) => context.Users.Where(d => d.RoleId == roleId && d.IsDeleted == false && d.IsActive == true).Include(d => d.Role).ToList();
 
         public User? GetById(string id)
         {

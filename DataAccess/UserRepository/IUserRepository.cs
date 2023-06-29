@@ -10,5 +10,6 @@ namespace DataAccess.UserRepository
     public interface IUserRepository : ICrudBaseRepository<User, string>
     {
         User? GetByEmailAndPassword(string email, string password);
+        IEnumerable<User> GetAllByRoleId(int roleId);
     }
 }

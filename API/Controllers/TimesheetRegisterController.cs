@@ -1,5 +1,8 @@
-﻿using API.DTOs.Request;
+﻿using API.Constants;
+using API.DTOs;
+using API.DTOs.Request;
 using BusinessObject.Models;
+using DataAccess.RoleRepository;
 using DataAccess.TimeSheetRegistrationRepository;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,15 +15,17 @@ namespace API.Controllers
     public class TimesheetRegisterController : ControllerBase
     {
         private readonly ITimesheetRegistrationRepository timesheetRegistrationRepository;
+        private readonly IRoleRepository roleRepository;
 
-        public TimesheetRegisterController(ITimesheetRegistrationRepository timesheetRegistrationRepository)
+        public TimesheetRegisterController(ITimesheetRegistrationRepository timesheetRegistrationRepository, IRoleRepository roleRepository)
         {
             this.timesheetRegistrationRepository = timesheetRegistrationRepository;
+            this.roleRepository = roleRepository;
         }
 
         // GET api/timesheet/register?startDate=2023-01-01&endDate=2023-02-01
         [HttpGet]
-        public IActionResult Get([FromRoute] DateTime? startDate, [FromRoute] DateTime? endDate)
+        public IActionResult Get([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
         {
             var start = startDate == null ? DateTime.Now : startDate.Value;
             var end = endDate == null ? DateTime.Now.AddYears(10) : endDate.Value;
@@ -30,11 +35,23 @@ namespace API.Controllers
 
         // GET api/timesheet/register/all?startDate=2023-01-01&endDate=2023-02-01
         [HttpGet("all")]
-        public IActionResult GetForAdmin([FromRoute] DateTime? startDate, [FromRoute] DateTime? endDate)
+        public IActionResult GetForAdmin([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
         {
             var start = startDate == null ? DateTime.Now : startDate.Value;
             var end = endDate == null ? DateTime.Now.AddYears(10) : endDate.Value;
-            return Ok(timesheetRegistrationRepository.GetAllByTimeRange(start, end));
+            var registrationEntities = timesheetRegistrationRepository.GetAllByTimeRange(start, end);
+            var roleEntities = roleRepository.GetAll();
+            var response = roleEntities.Where(role => role.Id != RoleConstant.MANAGER)
+                                                        .Select(role =>
+                                                        {
+                                                            return new RegistrationData()
+                                                            {
+                                                                RoleId = role.Id,
+                                                                RoleName = role.Name,
+                                                                Registrations = registrationEntities.Where(d => d.User.RoleId == role.Id)
+                                                            };
+                                                        }).ToList();
+            return Ok(response);
         }
 
 
@@ -57,6 +74,7 @@ namespace API.Controllers
                 Date = request.Date,
                 TimeSheetId = request.TimeSheetId,
                 UserId = request.UserId!,
+                Salary = request.Salary!.Value,
             }).ToList();
 
             timesheetRegistrationRepository.AddRange(entities);
@@ -71,7 +89,7 @@ namespace API.Controllers
             return NoContent();
         }
 
-        [HttpDelete]
+        [HttpPost("delete-range")]
         public IActionResult DeleteRange([FromBody] ArrayRequest requests)
         {
             foreach(var request in requests.Items)

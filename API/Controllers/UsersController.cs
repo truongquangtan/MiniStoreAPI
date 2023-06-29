@@ -21,13 +21,13 @@ namespace API.Controllers
             this.userRepository = userRepository;
         }
         [HttpGet]
-        public IEnumerable<User> Get() => userRepository.GetAll()
+        public IEnumerable<User> Get([FromQuery] int? roleId) => roleId == null ? userRepository.GetAll()
             .Where(user => user.RoleId != RoleConstant.MANAGER)
             .Select(d =>
             {
                 d.Password = "******";
                 return d;
-            });
+            }) : userRepository.GetAllByRoleId(roleId!.Value);
         [HttpPost]
         public async Task<IActionResult> Post([FromForm] CreateAccountRequest request)
         {

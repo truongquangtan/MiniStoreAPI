@@ -1,5 +1,6 @@
 ﻿using BusinessObject.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Transactions;
 
 namespace DataAccess.TimeSheetRegistrationRepository
 {
@@ -47,7 +48,17 @@ namespace DataAccess.TimeSheetRegistrationRepository
 
         public void AddRange(IEnumerable<TimeSheetRegistration> records)
         {
-            context.TimeSheetRegistrations.AddRange(records);
+            foreach (var record in records)
+            {
+                bool isEntityExisted = context.TimeSheetRegistrations
+                    .Where(t => t.UserId == record.UserId && t.TimeSheetId == record.TimeSheetId && t.Date == record.Date)
+                    .Any();
+                if (!isEntityExisted)
+                {
+                    context.Add(record);
+                }
+            }
+
             context.SaveChanges();
         }
 
@@ -70,6 +81,9 @@ namespace DataAccess.TimeSheetRegistrationRepository
             => context.TimeSheetRegistrations
             .Where(t => t.Date >= startDate && t.Date <= endDate)
             .Include(t => t.TimeSheet)
+            .Include(t => t.User)
+            .OrderBy(t => t.Date)
+            .ThenBy(t => t.TimeSheet.TimeRange)
             .ToList();
 
         public IEnumerable<TimeSheetRegistration> GetByRoleIdAndTimeRange(int roleId, DateTime startDate, DateTime endDate)

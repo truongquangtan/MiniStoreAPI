@@ -47,7 +47,17 @@ namespace DataAccess.TimeSheetRegistrationRefRepository
 
         public void AddRange(IEnumerable<TimeSheetRegistrationReference> records)
         {
-            context.AddRange(records);
+            foreach (var record in records)
+            {
+                bool isEntityExisted = context.TimeSheetRegistrationReferences
+                    .Where(t => t.UserId == record.UserId && t.TimeSheetId == record.TimeSheetId && t.Date == record.Date)
+                    .Any();
+                if (!isEntityExisted)
+                {
+                    context.Add(record);
+                }
+            }
+
             context.SaveChanges();
         }
 
