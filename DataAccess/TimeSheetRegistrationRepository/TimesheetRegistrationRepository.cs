@@ -92,5 +92,20 @@ namespace DataAccess.TimeSheetRegistrationRepository
             .Include(t => t.User)
             .Where(t => t.Date >= startDate && t.Date <= endDate && t.User.RoleId == roleId)
             .ToList();
+
+        public IEnumerable<TimeSheetRegistration> GetByTimesheetIdAndDate(string timesheetId, DateTime date)
+        {
+            return context.TimeSheetRegistrations
+                .Where(t => t.TimeSheetId == timesheetId && t.Date == date)
+                .Include(t => t.User)
+                .Include(t => t.TimeSheet)
+                .ToList();
+        }
+
+        public void DeleteRange(IEnumerable<TimeSheetRegistration> registrations)
+        {
+            context.TimeSheetRegistrations.RemoveRange(registrations);
+            context.SaveChanges();
+        }
     }
 }

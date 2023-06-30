@@ -1,5 +1,6 @@
 ﻿using API.Constants;
 using API.DTOs;
+using API.DTOs.Request;
 using API.DTOs.Response;
 using API.Supporters.Utils;
 using BusinessObject.Models;
@@ -26,6 +27,46 @@ namespace API.Services
             this.timesheetRepository = timesheetRepository;
             this.timesheetRegistrationRefRepository = timesheetRegistrationRefRepository;
             this.timesheetRegistrationRepository = timesheetRegistrationRepository;
+        }
+
+        public void UpdateScheduledTimesheet(UpdateScheduleTimesheetRequest request)
+        {
+            var registrationEntities = timesheetRegistrationRepository.GetByTimesheetIdAndDate(request.TimesheetId, request.Date);
+
+            // Delete the user not in the request list
+            var registrationEntitiesToRemove = registrationEntities.Where(d => !request.UserIds.Contains(d.UserId)).ToList();
+            timesheetRegistrationRepository.DeleteRange(registrationEntitiesToRemove);
+
+            // Add the user in request list but not in entities
+            var userIdsExisted = registrationEntities.Select(d => d.UserId).ToList();
+
+            var userIdsToAdd = request.UserIds.Except(userIdsExisted).ToList();
+            if(userIdsToAdd != null && userIdsToAdd.Count == 0)
+            {
+                return;
+            }
+
+            userIdsToAdd!.ForEach(userId =>
+            {
+                var registrationEntity = new TimeSheetRegistration()
+                {
+                    UserId = userId,
+                    TimeSheetId = request.TimesheetId,
+                    Date = request.Date,
+                    Salary = request.Salary,
+                };
+                timesheetRegistrationRepository.Save(registrationEntity);
+            });
+        }
+
+        public IEnumerable<RequestedTimesheetDTO> GetRequestedTimesheets(string userId, DateTime startTime, DateTime endTime)
+        {
+            var timesheetRegistrationRefEntities = timesheetRegistrationRefRepository.GetByUserIdAndTimeRange(userId, startTime, endTime);
+            return timesheetRegistrationRefEntities.Select(entity =>
+            {
+                var (salary, note) = CalculateSalaryOfTimesheetInDate(entity.TimeSheet, entity.Date);
+                return new RequestedTimesheetDTO(entity, salary, note);
+            }).ToList();
         }
 
         public IEnumerable<TimesheetWithSalaryForAdmin> GetTimesheetForSchedule(DateTime date, int roleId)
@@ -153,16 +194,6 @@ namespace API.Services
             }
             // Third: Use default co-efficient
             return (unitSalary, "");
-        }
-
-        public IEnumerable<RequestedTimesheetDTO> GetRequestedTimesheets(string userId, DateTime startTime, DateTime endTime)
-        {
-            var timesheetRegistrationRefEntities = timesheetRegistrationRefRepository.GetByUserIdAndTimeRange(userId, startTime, endTime);
-            return timesheetRegistrationRefEntities.Select(entity =>
-            {
-                var (salary, note) = CalculateSalaryOfTimesheetInDate(entity.TimeSheet, entity.Date);
-                return new RequestedTimesheetDTO(entity, salary, note);
-            }).ToList();
         }
     }
 }

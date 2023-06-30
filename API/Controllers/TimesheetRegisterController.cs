@@ -1,6 +1,7 @@
 ﻿using API.Constants;
 using API.DTOs;
 using API.DTOs.Request;
+using API.Services;
 using BusinessObject.Models;
 using DataAccess.RoleRepository;
 using DataAccess.TimeSheetRegistrationRepository;
@@ -16,11 +17,13 @@ namespace API.Controllers
     {
         private readonly ITimesheetRegistrationRepository timesheetRegistrationRepository;
         private readonly IRoleRepository roleRepository;
+        private readonly WorksheetService worksheetService;
 
-        public TimesheetRegisterController(ITimesheetRegistrationRepository timesheetRegistrationRepository, IRoleRepository roleRepository)
+        public TimesheetRegisterController(ITimesheetRegistrationRepository timesheetRegistrationRepository, IRoleRepository roleRepository, WorksheetService worksheetService)
         {
             this.timesheetRegistrationRepository = timesheetRegistrationRepository;
             this.roleRepository = roleRepository;
+            this.worksheetService = worksheetService;
         }
 
         // GET api/timesheet/register?startDate=2023-01-01&endDate=2023-02-01
@@ -97,6 +100,13 @@ namespace API.Controllers
                 timesheetRegistrationRepository.DeleteById(request);
             }
             return NoContent();
+        }
+
+        [HttpPut]
+        public ActionResult UpdateTimesheetScheduled([FromBody] UpdateScheduleTimesheetRequest request)
+        {
+            worksheetService.UpdateScheduledTimesheet(request);
+            return Ok();
         }
     }
 }
