@@ -4,6 +4,7 @@ using API.DTOs.Request;
 using API.DTOs.Response;
 using API.Supporters.Utils;
 using BusinessObject.Models;
+using DataAccess.TimesheetCheckRepository;
 using DataAccess.TimeSheetRegistrationRefRepository;
 using DataAccess.TimeSheetRegistrationRepository;
 using DataAccess.TimesheetRepository;
@@ -15,18 +16,24 @@ namespace API.Services
 {
     public class WorksheetService
     {
+        private const int SOON_ACCEPTED_IN_MINUTE = 30;
+        private const int LATE_ACCEPTED_IN_MINUTE = 30;
+
         private readonly ITimesheetRepository timesheetRepository;
         private readonly ITimesheetRegistrationRefRepository timesheetRegistrationRefRepository;
         private readonly ITimesheetRegistrationRepository timesheetRegistrationRepository;
+        private readonly ITimesheetCheckRepository timesheetCheckRepository;
 
         public WorksheetService(
             ITimesheetRepository timesheetRepository,
             ITimesheetRegistrationRefRepository timesheetRegistrationRefRepository,
-            ITimesheetRegistrationRepository timesheetRegistrationRepository)
+            ITimesheetRegistrationRepository timesheetRegistrationRepository,
+            ITimesheetCheckRepository timesheetCheckRepository)
         {
             this.timesheetRepository = timesheetRepository;
             this.timesheetRegistrationRefRepository = timesheetRegistrationRefRepository;
             this.timesheetRegistrationRepository = timesheetRegistrationRepository;
+            this.timesheetCheckRepository = timesheetCheckRepository;
         }
 
         public void UpdateScheduledTimesheet(UpdateScheduleTimesheetRequest request)
@@ -145,6 +152,73 @@ namespace API.Services
                 };
             }).ToList();
             return result;
+        }
+
+        public IEnumerable<TimesheetScheduledResponse> GetTimesheetScheduledForUser(string userId, DateTime startTime, DateTime endTime)
+        {
+            var timesheetScheduledEntities = timesheetRegistrationRepository.GetByUserIdAndTimeRange(userId, startTime, endTime).ToList();
+            var dataResult = new List<TimesheetScheduledResponse>();
+            for(int i = 0; i < timesheetScheduledEntities.Count; ++i)
+            {
+                var timesheetScheduledEntity = timesheetScheduledEntities[i];
+                var (start, end) = ExtractTheData(timesheetScheduledEntity.TimeSheet.TimeRange, timesheetScheduledEntity.Date!.Value);
+                dataResult.Add(new TimesheetScheduledResponse()
+                {
+                    Id = timesheetScheduledEntity.Id,
+                    IntId = i,
+                    TimesheetName = timesheetScheduledEntity.TimeSheet.Name,
+                    Start = start,
+                    End = end,
+                });
+            }
+
+            return dataResult;
+        }
+
+        public IEnumerable<AttendanceCheckDTO> GetTimesheetCheckDataBySpecifiedTime(string userId, DateTime time)
+        {
+            var timesheetRegistrationEntities = timesheetRegistrationRepository.GetByUserIdAndTimeRange(userId, time.Date, time.AddYears(10)).ToList();
+            var resultData = new List<AttendanceCheckDTO>();
+            foreach(var timesheetRegistrationEntity in timesheetRegistrationEntities)
+            {
+                var (startTime, endTime) = ExtractTheData(timesheetRegistrationEntity.TimeSheet.TimeRange, timesheetRegistrationEntity.Date!.Value);
+                var checkEntity = timesheetCheckRepository.GetByRegistrationId(timesheetRegistrationEntity.Id);
+                if (startTime.AddMinutes(SOON_ACCEPTED_IN_MINUTE * (-1)) <= time && endTime.AddMinutes(LATE_ACCEPTED_IN_MINUTE) >= time)
+                {
+                    resultData.Add(new AttendanceCheckDTO()
+                    {
+                        UserId = timesheetRegistrationEntity.UserId,
+                        Salary = timesheetRegistrationEntity.Salary,
+                        RegistrationId = timesheetRegistrationEntity.Id,
+                        StartTime = startTime,
+                        EndTime = endTime,
+                        TimeSheet = timesheetRegistrationEntity.TimeSheet,
+                        IsChecked = checkEntity != null,
+                        CheckId = checkEntity?.Id,
+                        CheckData = checkEntity,
+                    });
+                }
+            }
+            return resultData;
+        }
+
+        public void CheckAttendance(string registrationId, string userId)
+        {
+            var registrationEntity = timesheetRegistrationRepository.GetById(registrationId) ?? throw new Exception("Registration entity not existed");
+            if(registrationEntity.UserId != userId)
+            {
+                throw new Exception("The registration is not scheduled for this user");
+            }
+
+            var checkEntity = new TimeSheetCheck()
+            {
+                CheckedAt = DateTime.Now,
+                CoefficientAmount = registrationEntity.TimeSheet.CoefficientAmount,
+                TimeSheetRegistrationId = registrationId,
+                UserId = userId,
+                Note = "",
+            };
+            timesheetCheckRepository.Save(checkEntity);
         }
 
         private static (decimal salary, string note) CalculateSalaryOfTimesheetInDate(TimeSheet timesheet, DateTime date)

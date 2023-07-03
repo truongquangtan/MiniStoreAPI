@@ -20,7 +20,7 @@ namespace DataAccess.TimeSheetRegistrationRepository
 
         public TimeSheetRegistration? GetById(string id)
         {
-            return context.TimeSheetRegistrations.Find(id);
+            return context.TimeSheetRegistrations.Where(t => t.Id == id).Include(t => t.TimeSheet).FirstOrDefault();
         }
 
         public TimeSheetRegistration? Save(TimeSheetRegistration entity)

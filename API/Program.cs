@@ -7,6 +7,7 @@ using DataAccess.OrderDetailRepository;
 using DataAccess.OrderRepository;
 using DataAccess.ProductRepository;
 using DataAccess.RoleRepository;
+using DataAccess.TimesheetCheckRepository;
 using DataAccess.TimeSheetRegistrationRefRepository;
 using DataAccess.TimeSheetRegistrationRepository;
 using DataAccess.TimesheetRepository;
@@ -35,6 +36,7 @@ builder.Services.AddScoped<IOrderDetailRepository, OrderDetailRepository>();
 builder.Services.AddScoped<ITimesheetRepository, TimesheetRepository>();
 builder.Services.AddScoped<ITimesheetRegistrationRefRepository, TimesheetRegistrationRefRepository>();
 builder.Services.AddScoped<ITimesheetRegistrationRepository, TimesheetRegistrationRepository>();
+builder.Services.AddScoped<ITimesheetCheckRepository, TimesheetCheckRepository>();
 
 builder.Services.AddScoped<FirebaseService, FirebaseService>();
 builder.Services.AddScoped<JwtTokenSupporter, JwtTokenSupporter>();

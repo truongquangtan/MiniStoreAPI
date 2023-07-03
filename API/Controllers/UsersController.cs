@@ -28,6 +28,13 @@ namespace API.Controllers
                 d.Password = "******";
                 return d;
             }) : userRepository.GetAllByRoleId(roleId!.Value);
+
+        [HttpGet("info")]
+        public User GetInfo()
+        {
+            var user = HttpContext.Items["User"] as BusinessObject.Models.User;
+            return user;
+        }
         [HttpPost]
         public async Task<IActionResult> Post([FromForm] CreateAccountRequest request)
         {

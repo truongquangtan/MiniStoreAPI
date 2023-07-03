@@ -33,7 +33,7 @@ namespace API.Controllers
             var start = startDate == null ? DateTime.Now : startDate.Value;
             var end = endDate == null ? DateTime.Now.AddYears(10) : endDate.Value;
             var user = HttpContext.Items["User"] as User;
-            return Ok(timesheetRegistrationRepository.GetByUserIdAndTimeRange(user!.Id, start, end));
+            return Ok(worksheetService.GetTimesheetScheduledForUser(user!.Id, start, end));
         }
 
         // GET api/timesheet/register/all?startDate=2023-01-01&endDate=2023-02-01
