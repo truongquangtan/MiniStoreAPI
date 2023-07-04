@@ -107,7 +107,7 @@ namespace API.Controllers
                     }
                     productRepository.DeleteAllImagesOfProduct(id);
                     //Add new image
-                    var imageName = product.Name + " " + Guid.NewGuid().ToString();
+                    var imageName = product.Name + "-" + Guid.NewGuid().ToString();
                     var imageUrl = await firebaseService.Upload(product.Image.OpenReadStream(), imageName);
                     productRepository.AddImageToProduct(id, imageUrl);
                 }
