@@ -2,6 +2,7 @@
 using API.DTOs.Request;
 using API.DTOs.Response;
 using API.Services;
+using API.Supporters.JwtAuthSupport;
 using BusinessObject.Models;
 using DataAccess.UserRepository;
 using Microsoft.AspNetCore.Mvc;
@@ -21,6 +22,7 @@ namespace API.Controllers
             this.userRepository = userRepository;
         }
         [HttpGet]
+        [ManagerOnly]
         public IEnumerable<User> Get([FromQuery] int? roleId) => roleId == null ? userRepository.GetAll()
             .Where(user => user.RoleId != RoleConstant.MANAGER)
             .Select(d =>
@@ -30,12 +32,14 @@ namespace API.Controllers
             }) : userRepository.GetAllByRoleId(roleId!.Value);
 
         [HttpGet("info")]
+        [Authorize]
         public User GetInfo()
         {
             var user = HttpContext.Items["User"] as BusinessObject.Models.User;
             return user;
         }
         [HttpPost]
+        [ManagerOnly]
         public async Task<IActionResult> Post([FromForm] CreateAccountRequest request)
         {
             ResponseMessage response = new ResponseMessage();
@@ -64,6 +68,7 @@ namespace API.Controllers
         }
 
         [HttpPut("{id}")]
+        [ManagerOnly]
         public async Task<IActionResult> Put(string id, [FromForm] UpdateUserRequest request)
         {
             ResponseMessage response = new ResponseMessage();

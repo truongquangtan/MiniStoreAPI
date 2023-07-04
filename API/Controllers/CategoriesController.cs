@@ -1,4 +1,5 @@
-﻿using BusinessObject.Models;
+﻿using API.Supporters.JwtAuthSupport;
+using BusinessObject.Models;
 using DataAccess.CategoryRepository;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -23,6 +24,7 @@ namespace API.Controllers
         }
 
         [HttpPost]
+        [AuthorizeExceptGuard]
         public IActionResult Post([FromBody] Category category)
         {
             var categorySaved = categoryRepository.Save(category);
@@ -30,6 +32,7 @@ namespace API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [AuthorizeExceptGuard]
         public IActionResult Delete(int id)
         {
             categoryRepository.Delete(id);

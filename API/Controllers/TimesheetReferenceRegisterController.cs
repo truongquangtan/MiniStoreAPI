@@ -1,5 +1,6 @@
 ﻿using API.DTOs.Request;
 using API.Services;
+using API.Supporters.JwtAuthSupport;
 using BusinessObject.Models;
 using DataAccess.TimeSheetRegistrationRefRepository;
 using Microsoft.AspNetCore.Mvc;
@@ -10,6 +11,7 @@ namespace API.Controllers
 {
     [Route("api/timesheet/register-reference")]
     [ApiController]
+    [Authorize]
     public class TimesheetRegisterReferenceController : ControllerBase
     {
         private readonly ITimesheetRegistrationRefRepository timesheetRegistrationRefRepository;

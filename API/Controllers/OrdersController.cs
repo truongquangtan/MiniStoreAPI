@@ -1,5 +1,6 @@
 ﻿using API.DTOs;
 using API.Services;
+using API.Supporters.JwtAuthSupport;
 using BusinessObject.Models;
 using DataAccess.OrderRepository;
 using DataAccess.ProductRepository;
@@ -11,6 +12,7 @@ namespace API.Controllers
 {
     [Route("api/orders")]
     [ApiController]
+    [AuthorizeExceptGuard]
     public class OrdersController : ControllerBase
     {
         private readonly IOrderRepository orderRepository;

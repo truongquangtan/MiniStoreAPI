@@ -2,6 +2,7 @@
 using API.DTOs;
 using API.DTOs.Request;
 using API.Services;
+using API.Supporters.JwtAuthSupport;
 using BusinessObject.Models;
 using DataAccess.RoleRepository;
 using DataAccess.TimeSheetRegistrationRepository;
@@ -28,6 +29,7 @@ namespace API.Controllers
 
         // GET api/timesheet/register?startDate=2023-01-01&endDate=2023-02-01
         [HttpGet]
+        [Authorize]
         public IActionResult Get([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
         {
             var start = startDate == null ? DateTime.Now : startDate.Value;
@@ -38,6 +40,7 @@ namespace API.Controllers
 
         // GET api/timesheet/register/all?startDate=2023-01-01&endDate=2023-02-01
         [HttpGet("all")]
+        [ManagerOnly]
         public IActionResult GetForAdmin([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
         {
             var start = startDate == null ? DateTime.Now : startDate.Value;
@@ -60,10 +63,9 @@ namespace API.Controllers
 
         // POST api/timesheet/register
         [HttpPost]
+        [ManagerOnly]
         public IActionResult Post([FromBody] IEnumerable<TimesheetRegisterRequest> requests)
         {
-            var user = HttpContext.Items["User"] as User;
-
             foreach(var request in requests)
             {
                 if (request.UserId == null)
@@ -86,6 +88,7 @@ namespace API.Controllers
 
         // DELETE api/timesheet/register/uid
         [HttpDelete("{id}")]
+        [ManagerOnly]
         public IActionResult Delete(string id)
         {
             timesheetRegistrationRepository.DeleteById(id);
@@ -93,6 +96,7 @@ namespace API.Controllers
         }
 
         [HttpPost("delete-range")]
+        [ManagerOnly]
         public IActionResult DeleteRange([FromBody] ArrayRequest requests)
         {
             foreach(var request in requests.Items)
@@ -103,6 +107,7 @@ namespace API.Controllers
         }
 
         [HttpPut]
+        [ManagerOnly]
         public ActionResult UpdateTimesheetScheduled([FromBody] UpdateScheduleTimesheetRequest request)
         {
             worksheetService.UpdateScheduledTimesheet(request);

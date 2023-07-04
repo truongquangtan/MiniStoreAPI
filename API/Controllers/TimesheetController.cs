@@ -117,6 +117,7 @@ namespace API.Controllers
 
         // POST api/timesheet
         [HttpPost]
+        [ManagerOnly]
         public ActionResult Post([FromBody] TimeSheet value)
         {
             var result = timesheetRepository.Save(value);
@@ -125,6 +126,7 @@ namespace API.Controllers
 
         // PUT api/timesheet/5
         [HttpPut("{id}")]
+        [ManagerOnly]
         public ActionResult Put(string id, [FromBody] TimeSheet value)
         {
             if(id != value.Id)
@@ -138,6 +140,7 @@ namespace API.Controllers
 
         // DELETE api/timesheet/5
         [HttpDelete("{id}")]
+        [ManagerOnly]
         public ActionResult Delete(string id)
         {
             timesheetRepository.DeleteById(id);

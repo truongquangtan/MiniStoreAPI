@@ -1,4 +1,5 @@
 ﻿using API.DTOs.Request;
+using API.Supporters.JwtAuthSupport;
 using BLL.Services;
 using BusinessObject.Models;
 using DataAccess.ProductRepository;
@@ -10,6 +11,7 @@ namespace API.Controllers
 {
     [Route("api/products")]
     [ApiController]
+    [AuthorizeExceptGuard]
     public class ProductsController : ControllerBase
     {
         private readonly IProductRepository productRepository;

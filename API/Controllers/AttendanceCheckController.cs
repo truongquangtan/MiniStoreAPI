@@ -1,5 +1,6 @@
 ﻿using API.DTOs.Request;
 using API.Services;
+using API.Supporters.JwtAuthSupport;
 using Microsoft.AspNetCore.Mvc;
 using System.Reflection.Metadata.Ecma335;
 
@@ -7,6 +8,7 @@ namespace API.Controllers
 {
     [Route("api/attendance-check")]
     [ApiController]
+    [Authorize]
     public class AttendanceCheckController : ControllerBase
     {
         private readonly WorksheetService worksheetService;
