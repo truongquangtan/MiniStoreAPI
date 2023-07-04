@@ -40,6 +40,8 @@ public partial class User
 
     public decimal? Salary { get; set; }
 
+    public DateTime? DateUpdateSalary { get; set; }
+
     [JsonIgnore]
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 

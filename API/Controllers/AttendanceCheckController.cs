@@ -1,6 +1,7 @@
 ﻿using API.DTOs.Request;
 using API.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Reflection.Metadata.Ecma335;
 
 namespace API.Controllers
 {
@@ -21,6 +22,14 @@ namespace API.Controllers
             var user = HttpContext.Items["User"] as BusinessObject.Models.User;
             return Ok(worksheetService.GetTimesheetCheckDataBySpecifiedTime(user!.Id, DateTime.Now));
         }
+
+        [HttpGet("checked")]
+        public ActionResult GetChecked([FromQuery] int? monthBefore)
+        {
+            var user = HttpContext.Items["User"] as BusinessObject.Models.User;
+            return Ok(worksheetService.GetAllTimesheetCheckDataBeforeSomeMonth(user!.Id, monthBefore ?? 1));
+        }
+
         [HttpPost]
         public ActionResult Check(CheckAttendanceRequest request)
         {

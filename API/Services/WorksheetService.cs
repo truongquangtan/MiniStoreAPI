@@ -8,6 +8,7 @@ using DataAccess.TimesheetCheckRepository;
 using DataAccess.TimeSheetRegistrationRefRepository;
 using DataAccess.TimeSheetRegistrationRepository;
 using DataAccess.TimesheetRepository;
+using DataAccess.UserRepository;
 using Firebase.Auth;
 using System.Globalization;
 using System.Text.Json;
@@ -16,24 +17,27 @@ namespace API.Services
 {
     public class WorksheetService
     {
-        private const int SOON_ACCEPTED_IN_MINUTE = 30;
-        private const int LATE_ACCEPTED_IN_MINUTE = 30;
+        private const int SOON_ACCEPTED_IN_MINUTE = 60;
+        private const int LATE_ACCEPTED_IN_MINUTE = 60;
 
         private readonly ITimesheetRepository timesheetRepository;
         private readonly ITimesheetRegistrationRefRepository timesheetRegistrationRefRepository;
         private readonly ITimesheetRegistrationRepository timesheetRegistrationRepository;
         private readonly ITimesheetCheckRepository timesheetCheckRepository;
+        private readonly IUserRepository userRepository;
 
         public WorksheetService(
             ITimesheetRepository timesheetRepository,
             ITimesheetRegistrationRefRepository timesheetRegistrationRefRepository,
             ITimesheetRegistrationRepository timesheetRegistrationRepository,
-            ITimesheetCheckRepository timesheetCheckRepository)
+            ITimesheetCheckRepository timesheetCheckRepository,
+            IUserRepository userRepository)
         {
             this.timesheetRepository = timesheetRepository;
             this.timesheetRegistrationRefRepository = timesheetRegistrationRefRepository;
             this.timesheetRegistrationRepository = timesheetRegistrationRepository;
             this.timesheetCheckRepository = timesheetCheckRepository;
+            this.userRepository = userRepository;
         }
 
         public void UpdateScheduledTimesheet(UpdateScheduleTimesheetRequest request)
@@ -183,7 +187,7 @@ namespace API.Services
             {
                 var (startTime, endTime) = ExtractTheData(timesheetRegistrationEntity.TimeSheet.TimeRange, timesheetRegistrationEntity.Date!.Value);
                 var checkEntity = timesheetCheckRepository.GetByRegistrationId(timesheetRegistrationEntity.Id);
-                if (startTime.AddMinutes(SOON_ACCEPTED_IN_MINUTE * (-1)) <= time && endTime.AddMinutes(LATE_ACCEPTED_IN_MINUTE) >= time)
+                if (IsInCheckableTimeRange(time, startTime))
                 {
                     resultData.Add(new AttendanceCheckDTO()
                     {
@@ -202,14 +206,52 @@ namespace API.Services
             return resultData;
         }
 
+        public IEnumerable<AttendanceCheckDTO> GetAllTimesheetCheckDataBeforeSomeMonth(string userId, int monthBefore)
+        {
+            var time = DateTime.Now;
+            var timesheetRegistrationEntities
+                = timesheetRegistrationRepository.GetByUserIdAndTimeRange(userId, time.Date.AddMonths(monthBefore * -1), time.Date)
+                .OrderByDescending(d => d.Date)
+                .ThenByDescending(t => t.TimeSheet.TimeRange)
+                .ToList();
+            var resultData = new List<AttendanceCheckDTO>();
+            foreach (var timesheetRegistrationEntity in timesheetRegistrationEntities)
+            {
+                var (startTime, endTime) = ExtractTheData(timesheetRegistrationEntity.TimeSheet.TimeRange, timesheetRegistrationEntity.Date!.Value);
+                var checkEntity = timesheetCheckRepository.GetByRegistrationId(timesheetRegistrationEntity.Id);
+                resultData.Add(new AttendanceCheckDTO()
+                {
+                    UserId = timesheetRegistrationEntity.UserId,
+                    Salary = timesheetRegistrationEntity.Salary,
+                    RegistrationId = timesheetRegistrationEntity.Id,
+                    StartTime = startTime,
+                    EndTime = endTime,
+                    TimeSheet = timesheetRegistrationEntity.TimeSheet,
+                    IsChecked = checkEntity != null,
+                    CheckId = checkEntity?.Id,
+                    CheckData = checkEntity,
+                    CheckStatus = checkEntity != null ? "ATTENDED" : IsInNotYetStatusTimeRange(time, startTime)  ? "NOT YET" : "ABSENTED"
+                });
+            }
+            return resultData;
+        }
+
         public void CheckAttendance(string registrationId, string userId)
         {
+            var user = userRepository.GetById(userId) ?? throw new Exception("User is not existed");
             var registrationEntity = timesheetRegistrationRepository.GetById(registrationId) ?? throw new Exception("Registration entity not existed");
             if(registrationEntity.UserId != userId)
             {
                 throw new Exception("The registration is not scheduled for this user");
             }
+            var (startTime, endTime) = ExtractTheData(registrationEntity.TimeSheet.TimeRange, registrationEntity.Date!.Value);
+            if(!IsInCheckableTimeRange(DateTime.Now, startTime))
+            {
+                throw new Exception("It's not the time to check this registration");
+            }
 
+            // Should use transaction
+            // Save check entity
             var checkEntity = new TimeSheetCheck()
             {
                 CheckedAt = DateTime.Now,
@@ -219,6 +261,19 @@ namespace API.Services
                 Note = "",
             };
             timesheetCheckRepository.Save(checkEntity);
+
+            // Save salary information
+            if(user.DateUpdateSalary != null && user.DateUpdateSalary.Value.Month < DateTime.Now.Month) // New month - reset salary
+            {
+                user.Salary = registrationEntity.Salary;
+            }
+            else
+            {
+                user.Salary ??= 0;
+                user.Salary += registrationEntity.Salary;
+            }
+            user.DateUpdateSalary = DateTime.Now;
+            userRepository.Update(user);
         }
 
         private static (decimal salary, string note) CalculateSalaryOfTimesheetInDate(TimeSheet timesheet, DateTime date)
@@ -268,6 +323,15 @@ namespace API.Services
             }
             // Third: Use default co-efficient
             return (unitSalary, "");
+        }
+        private static bool IsInCheckableTimeRange(DateTime time, DateTime startWorksheetTime)
+        {
+            return startWorksheetTime.AddMinutes(SOON_ACCEPTED_IN_MINUTE * (-1)) <= time && startWorksheetTime.AddMinutes(LATE_ACCEPTED_IN_MINUTE) >= time;
+        }
+        private static bool IsInNotYetStatusTimeRange(DateTime time, DateTime startWorksheetTime)
+        {
+            // In start time in future -> not yet; start time is past due datetime.now but still in late accepted -> not yet
+            return startWorksheetTime.AddMinutes(LATE_ACCEPTED_IN_MINUTE) >= time;
         }
     }
 }

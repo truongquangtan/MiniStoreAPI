@@ -346,6 +346,9 @@ public partial class MiniStoreContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasColumnType("datetime")
                 .HasColumnName("created_at");
+            entity.Property(e => e.DateUpdateSalary)
+                .HasColumnType("datetime")
+                .HasColumnName("date_update_salary");
             entity.Property(e => e.Dob)
                 .HasColumnType("date")
                 .HasColumnName("DOB");
