@@ -45,7 +45,7 @@ namespace API.Controllers
 
         [HttpGet("timesheet-with-salary")]
         [Authorize]
-        public async Task<ActionResult> GetWithSalary([FromQuery] DateTime startDate, [FromQuery] int addIn)
+        public ActionResult GetWithSalary([FromQuery] DateTime startDate, [FromQuery] int addIn)
         {
             if(startDate.CompareTo(DateTime.Now.Date) < 0)
             {
@@ -82,7 +82,7 @@ namespace API.Controllers
 
         [HttpGet("timesheet-for-schedule")]
         [ManagerOnly]
-        public async Task<ActionResult> GetForSchedule([FromQuery] DateTime startDate, [FromQuery] int addIn, [FromQuery] int roleId)
+        public ActionResult GetForSchedule([FromQuery] DateTime startDate, [FromQuery] int addIn, [FromQuery] int roleId)
         {
             if (startDate.CompareTo(DateTime.Now.Date) < 0)
             {

@@ -11,4 +11,9 @@ namespace API.DTOs.Request
         public string? UserId { get; set; }
         public decimal? Salary { get; set; }
     }
+    public class TimesheetRegisterError
+    {
+        public TimesheetRegisterRequest Request { get; set; }
+        public string ErrorMessage { get; set; }
+    }
 }

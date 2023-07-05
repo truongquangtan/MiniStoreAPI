@@ -66,24 +66,19 @@ namespace API.Controllers
         [ManagerOnly]
         public IActionResult Post([FromBody] IEnumerable<TimesheetRegisterRequest> requests)
         {
-            foreach(var request in requests)
+            try
             {
-                if (request.UserId == null)
+                var errors = worksheetService.ScheduleTimesheet(requests);
+                return Ok(new
                 {
-                    return BadRequest("There are some requests do not provide userId");
-                }
+                    IsContainErrors = errors.Count > 0,
+                    ErrorsData = errors,
+                });
             }
-
-            var entities = requests.Select(request => new TimeSheetRegistration()
+            catch (Exception ex)
             {
-                Date = request.Date,
-                TimeSheetId = request.TimeSheetId,
-                UserId = request.UserId!,
-                Salary = request.Salary!.Value,
-            }).ToList();
-
-            timesheetRegistrationRepository.AddRange(entities);
-            return Ok();
+                return BadRequest(ex.Message);
+            }
         }
 
         // DELETE api/timesheet/register/uid
@@ -110,8 +105,15 @@ namespace API.Controllers
         [ManagerOnly]
         public ActionResult UpdateTimesheetScheduled([FromBody] UpdateScheduleTimesheetRequest request)
         {
-            worksheetService.UpdateScheduledTimesheet(request);
-            return Ok();
+            try
+            {
+                worksheetService.UpdateScheduledTimesheet(request);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }

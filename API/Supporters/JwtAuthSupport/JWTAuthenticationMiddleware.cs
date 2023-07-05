@@ -31,7 +31,7 @@ namespace API.Supporters
             try
             {
                 var tokenHandler = new JwtSecurityTokenHandler();
-                var key = Encoding.ASCII.GetBytes(configuration["jwt:Key"]);
+                var key = Encoding.ASCII.GetBytes(configuration["jwt:Key"]!);
                 tokenHandler.ValidateToken(token, new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey = true,
@@ -49,7 +49,7 @@ namespace API.Supporters
                 context.Items["User"] = user;
                 context.Items["Role"] = user!.RoleId;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
 
             }

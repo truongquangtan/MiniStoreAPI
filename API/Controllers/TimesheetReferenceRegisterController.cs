@@ -40,17 +40,20 @@ namespace API.Controllers
         [HttpPost]
         public IActionResult Post([FromBody] IEnumerable<TimesheetRegisterRequest> requests)
         {
-            var user = HttpContext.Items["User"] as User;
-
-            var entities = requests.Select(request => new TimeSheetRegistrationReference()
+            try
             {
-                Date = request.Date,
-                TimeSheetId = request.TimeSheetId,
-                UserId = user!.Id,
-            }).ToList();
-
-            timesheetRegistrationRefRepository.AddRange(entities);
-            return Ok();
+                var user = HttpContext.Items["User"] as User;
+                var errors = worksheetService.RequestTimesheet(requests, user!.Id);
+                return Ok(new
+                {
+                    IsContainErrors = errors.Count > 0,
+                    ErrorsData = errors,
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         // DELETE api/timesheet/register/uid

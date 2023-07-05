@@ -51,7 +51,7 @@ namespace API.Controllers
             order.UserId = user!.Id;
             try
             {
-                var orderInfo = await OrderService.AddOrder(order);
+                var orderInfo = await orderRepository.SaveOrderWithTransaction(order);
                 return Ok(orderInfo);
             }
             catch (OrderProcessException orderProcessException)
@@ -87,7 +87,7 @@ namespace API.Controllers
 
             try
             {
-                await OrderService.UpdateOrder(order);
+                await orderRepository.UpdateOrderWithTransaction(order);
                 return Ok();
             }
             catch (OrderProcessException orderProcessException)
@@ -116,7 +116,7 @@ namespace API.Controllers
         {
             try
             {
-                await OrderService.DeleteOrder(id);
+                await orderRepository.DeleteOrderWithTransaction(id);
                 return Ok();
             }
             catch (OrderProcessException orderProcessException)

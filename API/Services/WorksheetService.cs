@@ -10,15 +10,15 @@ using DataAccess.TimeSheetRegistrationRepository;
 using DataAccess.TimesheetRepository;
 using DataAccess.UserRepository;
 using Firebase.Auth;
-using System.Globalization;
-using System.Text.Json;
 
 namespace API.Services
 {
     public class WorksheetService
     {
-        private const int SOON_ACCEPTED_IN_MINUTE = 60;
-        private const int LATE_ACCEPTED_IN_MINUTE = 60;
+        public readonly int SOON_ACCEPTED_IN_MINUTE;
+        public readonly int LATE_ACCEPTED_IN_MINUTE;
+        public readonly int LATE_TO_SCHEDULE_ACCEPTED_IN_MINUTE;
+        public readonly int REQUEST_MUST_BEFORE_THAN_START_TIME_IN_MINUTE;
 
         private readonly ITimesheetRepository timesheetRepository;
         private readonly ITimesheetRegistrationRefRepository timesheetRegistrationRefRepository;
@@ -31,45 +31,19 @@ namespace API.Services
             ITimesheetRegistrationRefRepository timesheetRegistrationRefRepository,
             ITimesheetRegistrationRepository timesheetRegistrationRepository,
             ITimesheetCheckRepository timesheetCheckRepository,
-            IUserRepository userRepository)
+            IUserRepository userRepository,
+            IConfiguration configuration)
         {
             this.timesheetRepository = timesheetRepository;
             this.timesheetRegistrationRefRepository = timesheetRegistrationRefRepository;
             this.timesheetRegistrationRepository = timesheetRegistrationRepository;
             this.timesheetCheckRepository = timesheetCheckRepository;
             this.userRepository = userRepository;
+            SOON_ACCEPTED_IN_MINUTE = int.Parse(configuration["worksheet_business_rule:minutes_member_can_check_soon"] ?? "60");
+            LATE_ACCEPTED_IN_MINUTE = int.Parse(configuration["worksheet_business_rule:minutes_member_can_check_late"] ?? "60");
+            LATE_TO_SCHEDULE_ACCEPTED_IN_MINUTE = int.Parse(configuration["worksheet_business_rule:minutes_manager_can_schedule_late"] ?? "30");
+            REQUEST_MUST_BEFORE_THAN_START_TIME_IN_MINUTE = int.Parse(configuration["worksheet_business_rule:minutes_member_must_request_earlier_than_start_time"] ?? "30");
         }
-
-        public void UpdateScheduledTimesheet(UpdateScheduleTimesheetRequest request)
-        {
-            var registrationEntities = timesheetRegistrationRepository.GetByTimesheetIdAndDate(request.TimesheetId, request.Date);
-
-            // Delete the user not in the request list
-            var registrationEntitiesToRemove = registrationEntities.Where(d => !request.UserIds.Contains(d.UserId)).ToList();
-            timesheetRegistrationRepository.DeleteRange(registrationEntitiesToRemove);
-
-            // Add the user in request list but not in entities
-            var userIdsExisted = registrationEntities.Select(d => d.UserId).ToList();
-
-            var userIdsToAdd = request.UserIds.Except(userIdsExisted).ToList();
-            if(userIdsToAdd != null && userIdsToAdd.Count == 0)
-            {
-                return;
-            }
-
-            userIdsToAdd!.ForEach(userId =>
-            {
-                var registrationEntity = new TimeSheetRegistration()
-                {
-                    UserId = userId,
-                    TimeSheetId = request.TimesheetId,
-                    Date = request.Date,
-                    Salary = request.Salary,
-                };
-                timesheetRegistrationRepository.Save(registrationEntity);
-            });
-        }
-
         public IEnumerable<RequestedTimesheetDTO> GetRequestedTimesheets(string userId, DateTime startTime, DateTime endTime)
         {
             var timesheetRegistrationRefEntities = timesheetRegistrationRefRepository.GetByUserIdAndTimeRange(userId, startTime, endTime);
@@ -244,7 +218,7 @@ namespace API.Services
             {
                 throw new Exception("The registration is not scheduled for this user");
             }
-            var (startTime, endTime) = ExtractTheData(registrationEntity.TimeSheet.TimeRange, registrationEntity.Date!.Value);
+            var (startTime, _) = ExtractTheData(registrationEntity.TimeSheet.TimeRange, registrationEntity.Date!.Value);
             if(!IsInCheckableTimeRange(DateTime.Now, startTime))
             {
                 throw new Exception("It's not the time to check this registration");
@@ -275,6 +249,115 @@ namespace API.Services
             user.DateUpdateSalary = DateTime.Now;
             userRepository.Update(user);
         }
+        public void UpdateScheduledTimesheet(UpdateScheduleTimesheetRequest request)
+        {
+            var registrationEntities = timesheetRegistrationRepository.GetByTimesheetIdAndDate(request.TimesheetId, request.Date);
+            var timesheetEntity = timesheetRepository.GetById(request.TimesheetId) ?? throw new Exception("Timesheet not existed");
+            var (startTime, _) = ExtractTheData(timesheetEntity.TimeRange, request.Date);
+            if (!IsInSchedulableTime(DateTime.Now, startTime))
+            {
+                throw new Exception($"Now is out of the time to change this scheduled timesheet. Current: {DateTime.Now}, StartTime: {startTime}, must update before: {startTime.AddMinutes(LATE_TO_SCHEDULE_ACCEPTED_IN_MINUTE)}");
+            }
+
+            // Delete the user not in the request list
+            var registrationEntitiesToRemove = registrationEntities.Where(d => !request.UserIds.Contains(d.UserId)).ToList();
+            timesheetRegistrationRepository.DeleteRange(registrationEntitiesToRemove);
+
+            // Add the user in request list but not in entities
+            var userIdsExisted = registrationEntities.Select(d => d.UserId).ToList();
+
+            var userIdsToAdd = request.UserIds.Except(userIdsExisted).ToList();
+            if (userIdsToAdd != null && userIdsToAdd.Count == 0)
+            {
+                return;
+            }
+
+            userIdsToAdd!.ForEach(userId =>
+            {
+                var registrationEntity = new TimeSheetRegistration()
+                {
+                    UserId = userId,
+                    TimeSheetId = request.TimesheetId,
+                    Date = request.Date,
+                    Salary = request.Salary,
+                };
+                timesheetRegistrationRepository.Save(registrationEntity);
+            });
+        }
+        public List<TimesheetRegisterError> RequestTimesheet(IEnumerable<TimesheetRegisterRequest> requests, string userId)
+        {
+            var entities = new List<TimeSheetRegistrationReference>();
+            var errors = new List<TimesheetRegisterError>();
+            foreach(var request in requests)
+            {
+                var timesheetEntity = timesheetRepository.GetById(request.TimeSheetId);
+                if(timesheetEntity == null)
+                {
+                    errors.Add(new TimesheetRegisterError() { Request = request, ErrorMessage = "Timesheet not found" });
+                    continue;
+                }
+                var (startTime, _) = ExtractTheData(timesheetEntity.TimeRange, request.Date);
+                if(!IsInRequestableTime(DateTime.Now, startTime))
+                {
+                    errors.Add(new TimesheetRegisterError() {
+                        Request = request,
+                        ErrorMessage =
+                        $"Not in the time to request the timesheet. Current: {DateTime.Now}, StartTime: {startTime}, Latest requestable time: {startTime.AddMinutes(REQUEST_MUST_BEFORE_THAN_START_TIME_IN_MINUTE*-1)}" });
+                    continue;
+                }
+                entities.Add(new TimeSheetRegistrationReference()
+                {
+                    Date = request.Date,
+                    TimeSheetId = request.TimeSheetId,
+                    UserId = userId,
+                });
+            }
+
+            timesheetRegistrationRefRepository.AddRange(entities);
+            return errors;
+        }
+        public List<TimesheetRegisterError> ScheduleTimesheet(IEnumerable<TimesheetRegisterRequest> requests)
+        {
+            var entities = new List<TimeSheetRegistration>();
+            var errors = new List<TimesheetRegisterError>();
+            foreach (var request in requests)
+            {
+                if (request.UserId == null)
+                {
+                    errors.Add(new TimesheetRegisterError() { Request = request, ErrorMessage = "The userId is not provided"});
+                    continue;
+                }
+
+                var timesheetEntity = timesheetRepository.GetById(request.TimeSheetId);
+                if (timesheetEntity == null)
+                {
+                    errors.Add(new TimesheetRegisterError() { Request = request, ErrorMessage = "Timesheet not found" });
+                    continue;
+                }
+
+                var (startTime, _) = ExtractTheData(timesheetEntity.TimeRange, request.Date);
+                if (!IsInSchedulableTime(DateTime.Now, startTime))
+                {
+                    errors.Add(new TimesheetRegisterError() {
+                        Request = request,
+                        ErrorMessage =
+                        $"Not in the time to schedule the timesheet. Current: {DateTime.Now}, StartTime: {startTime}, Latest Schedulable Time: {startTime.AddMinutes(LATE_TO_SCHEDULE_ACCEPTED_IN_MINUTE)}" });
+                    continue;
+                }
+
+                entities.Add(new TimeSheetRegistration()
+                {
+                    Date = request.Date,
+                    TimeSheetId = request.TimeSheetId,
+                    UserId = request.UserId!,
+                    Salary = request.Salary!.Value,
+                });
+            }
+
+            timesheetRegistrationRepository.AddRange(entities);
+            return errors;
+        }
+
 
         private static (decimal salary, string note) CalculateSalaryOfTimesheetInDate(TimeSheet timesheet, DateTime date)
         {
@@ -324,14 +407,22 @@ namespace API.Services
             // Third: Use default co-efficient
             return (unitSalary, "");
         }
-        private static bool IsInCheckableTimeRange(DateTime time, DateTime startWorksheetTime)
+        public bool IsInCheckableTimeRange(DateTime time, DateTime startWorksheetTime)
         {
             return startWorksheetTime.AddMinutes(SOON_ACCEPTED_IN_MINUTE * (-1)) <= time && startWorksheetTime.AddMinutes(LATE_ACCEPTED_IN_MINUTE) >= time;
         }
-        private static bool IsInNotYetStatusTimeRange(DateTime time, DateTime startWorksheetTime)
+        public bool IsInNotYetStatusTimeRange(DateTime time, DateTime startWorksheetTime)
         {
             // In start time in future -> not yet; start time is past due datetime.now but still in late accepted -> not yet
             return startWorksheetTime.AddMinutes(LATE_ACCEPTED_IN_MINUTE) >= time;
+        }
+        public bool IsInSchedulableTime(DateTime time, DateTime startWorksheetTime)
+        {
+            return time <= startWorksheetTime.AddMinutes(LATE_TO_SCHEDULE_ACCEPTED_IN_MINUTE);
+        }
+        public bool IsInRequestableTime(DateTime time, DateTime startWorksheetTime)
+        {
+            return time <= startWorksheetTime.AddMinutes(REQUEST_MUST_BEFORE_THAN_START_TIME_IN_MINUTE * -1);
         }
     }
 }
