@@ -1,9 +1,6 @@
 USE [master]
 GO
 
-DROP DATABASE [MiniStore2]
-GO
-
 CREATE DATABASE [MiniStore2]
 GO
 
